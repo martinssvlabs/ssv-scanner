@@ -1,69 +1,45 @@
-import { ethers } from 'ethers';
-import cliProgress from 'cli-progress';
-import { getContractSettings } from '../contract.provider';
-
 import { BaseScanner } from '../BaseScanner';
+import { createSdkForNetwork } from '../sdk/create-sdk';
+import { isSupportedSdkNetwork, SUPPORTED_SDK_NETWORKS } from '../sdk/networks';
 
 export class NonceScanner extends BaseScanner {
   async run(isCli?: boolean): Promise<number> {
     if (isCli) {
       console.log('\nScanning blockchain...');
-      this.progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-    }
-    try {
-      const data = await this._getValidatorAddedEventCount(isCli);
-      isCli && this.progressBar.stop();
-      return data;
-    } catch (e: any) {
-      isCli && this.progressBar.stop();
-      throw new Error(e);
-    }
-  }
-
-  async _getValidatorAddedEventCount(isCli?: boolean): Promise<number> {
-    const { contractAddress, abi, genesisBlock } = getContractSettings(this.params.network)
-    const provider = new ethers.JsonRpcProvider(this.params.nodeUrl);
-    const contract = new ethers.Contract(contractAddress, abi, provider);
-
-    let latestBlockNumber;
-    try {
-      latestBlockNumber = await provider.getBlockNumber();
-    } catch (err) {
-      throw new Error('Could not access the provided node endpoint.');
     }
 
-    try {
-      // Verify contract is valid by calling getVersion() instead of owner()
-      await contract.getVersion();
-    } catch (err) {
-      throw new Error('Could not find any cluster snapshot from the provided contract address.');
+    const network = this.params.network;
+    if (!isSupportedSdkNetwork(network)) {
+      const supportedNetworks = SUPPORTED_SDK_NETWORKS.join(', ');
+      throw new Error(
+        `Network "${this.params.network}" is not supported for nonce command. Supported networks: ${supportedNetworks}.`,
+      );
     }
 
-    let totalEventCount = 0;
-    let blockStep = this.MONTH;
+    const sdk = createSdkForNetwork({
+      network,
+      nodeUrl: this.params.nodeUrl,
+    });
 
-    isCli && this.progressBar.start(Number(latestBlockNumber), 0);
-    const filter = contract.filters.ValidatorAdded(this.params.ownerAddress);
-
-    for (let startBlock = genesisBlock; startBlock <= latestBlockNumber; startBlock += blockStep) {
-      try {
-        const endBlock = Math.min(startBlock + blockStep - 1, latestBlockNumber);
-        const logs = await contract.queryFilter(filter, startBlock, endBlock);
-
-        totalEventCount += logs.length;
-        isCli && this.progressBar.update(endBlock);
-      } catch (error: any) {
-        if (blockStep === this.MONTH) {
-          blockStep = this.WEEK;
-        } else if (blockStep === this.WEEK) {
-          blockStep = this.DAY;
-        } else {
-          throw new Error(error);
-        }
+    if (isCli) {
+      const contractAddress = sdk.config.contractAddresses.setter;
+      if (contractAddress) {
+        console.log(`Using contract address: ${contractAddress}`);
       }
+      console.log(`Network: ${this.params.network}`);
+      console.log(`Owner address: ${this.params.ownerAddress}`);
     }
 
-    isCli && this.progressBar.update(latestBlockNumber, latestBlockNumber);
-    return totalEventCount;
+    // TODO: If nonce resolves to "0", consider an optional on-chain fallback check to disambiguate
+    // between a truly new owner and temporary subgraph unavailability/staleness.
+    // Resolve owner nonce from SDK subgraph API.
+    const ownerNonce = await sdk.api.getOwnerNonce({ owner: this.params.ownerAddress });
+    const parsedNonce = BigInt(ownerNonce);
+
+    if (parsedNonce > BigInt(Number.MAX_SAFE_INTEGER)) {
+      throw new Error('Owner nonce is larger than MAX_SAFE_INTEGER.');
+    }
+
+    return Number(parsedNonce);
   }
 }
