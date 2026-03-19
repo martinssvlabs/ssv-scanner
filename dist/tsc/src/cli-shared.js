@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = main;
 const tslib_1 = require("tslib");
 const figlet_1 = tslib_1.__importDefault(require("figlet"));
 const package_json_1 = tslib_1.__importDefault(require("../package.json"));
@@ -68,5 +69,4 @@ async function main() {
             process.exit(1);
     }
 }
-exports.default = main;
 //# sourceMappingURL=cli-shared.js.map

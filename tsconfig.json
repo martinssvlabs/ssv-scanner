@@ -1,9 +1,8 @@
 {
-  "extends": "./tsconfig.paths.json",
   "compilerOptions": {
     "target": "es2020",
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "Node16",
+    "moduleResolution": "node16",
     "declaration": true,
     "allowJs": false,
     "strict": true,
@@ -20,6 +19,11 @@
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "resolveJsonModule": true,
+    "paths": {
+      "@ssv-labs/ssv-sdk/utils": [
+        "./node_modules/@ssv-labs/ssv-sdk/dist/utils/index.d.ts"
+      ]
+    },
     "sourceMap": true,
     "outDir": "./dist/tsc/",
     "types": [
