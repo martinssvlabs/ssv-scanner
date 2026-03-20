@@ -1,14 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BaseScanner = void 0;
-const ethers_1 = require("ethers");
+const viem_1 = require("viem");
 class BaseScanner {
     constructor(scannerParams) {
-        this.DAY = 5400;
-        this.WEEK = this.DAY * 7;
-        this.MONTH = this.DAY * 30;
-        this.SECONDS = 1000;
-        this.MILISECONDS = 250;
         if (!scannerParams.nodeUrl) {
             throw Error('ETH1 node is required');
         }
@@ -26,7 +21,7 @@ class BaseScanner {
         }
         this.params = scannerParams;
         // convert to checksum addresses
-        this.params.ownerAddress = ethers_1.ethers.getAddress(this.params.ownerAddress);
+        this.params.ownerAddress = (0, viem_1.getAddress)(this.params.ownerAddress);
     }
 }
 exports.BaseScanner = BaseScanner;

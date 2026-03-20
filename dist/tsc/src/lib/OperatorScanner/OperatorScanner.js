@@ -2,107 +2,73 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OperatorScanner = void 0;
 const tslib_1 = require("tslib");
-const ethers_1 = require("ethers");
-const cli_progress_1 = tslib_1.__importDefault(require("cli-progress"));
-const contract_provider_1 = require("../contract.provider");
 const BaseScanner_1 = require("../BaseScanner");
-const fs = require('fs');
-const path = require('path');
+const create_sdk_1 = require("../sdk/create-sdk");
+const networks_1 = require("../sdk/networks");
+const fs = tslib_1.__importStar(require("fs"));
+const path = tslib_1.__importStar(require("path"));
 class OperatorScanner extends BaseScanner_1.BaseScanner {
     async run(outputPath, isCli) {
         if (isCli) {
             console.log('\nScanning blockchain...');
-            this.progressBar = new cli_progress_1.default.SingleBar({}, cli_progress_1.default.Presets.shades_classic);
         }
-        try {
-            const data = await this._getOperatorPubkeys(outputPath, isCli);
-            isCli && this.progressBar.stop();
-            return data;
+        const network = this.params.network;
+        if (!(0, networks_1.isSupportedSdkNetwork)(network)) {
+            const supportedNetworks = networks_1.SUPPORTED_SDK_NETWORKS.join(', ');
+            throw new Error(`Network "${this.params.network}" is not supported for operator command. Supported networks: ${supportedNetworks}.`);
         }
-        catch (e) {
-            isCli && this.progressBar.stop();
-            throw new Error(e);
+        const sdk = (0, create_sdk_1.createSdkForNetwork)({
+            network,
+            nodeUrl: this.params.nodeUrl,
+        });
+        if (isCli) {
+            const contractAddress = sdk.config.contractAddresses.setter;
+            if (contractAddress) {
+                console.log(`Using contract address: ${contractAddress}`);
+            }
+            console.log(`Network: ${this.params.network}`);
+            console.log(`Owner address: ${this.params.ownerAddress}`);
         }
+        const entries = await this.getOwnerOperators(sdk);
+        if (entries.length === 0) {
+            return null;
+        }
+        return this.writeOperatorsFile(entries, outputPath);
     }
-    async _getOperatorPubkeys(outputPath, isCli) {
-        const { contractAddress, abi, genesisBlock } = (0, contract_provider_1.getContractSettings)(this.params.network);
-        const provider = new ethers_1.ethers.JsonRpcProvider(this.params.nodeUrl);
-        const contract = new ethers_1.ethers.Contract(contractAddress, abi, provider);
-        const iface = new ethers_1.ethers.Interface(abi);
-        let latestBlockNumber;
-        try {
-            latestBlockNumber = await provider.getBlockNumber();
-        }
-        catch (err) {
-            throw new Error('Could not access the provided node endpoint.');
-        }
-        try {
-            await contract.owner();
-        }
-        catch (err) {
-            throw new Error('Could not find any cluster snapshot from the provided contract address.');
-        }
-        let blockStep = this.MONTH;
-        isCli && this.progressBar.start(Number(latestBlockNumber), 0);
-        const filter = contract.filters.OperatorAdded();
-        let logs = [];
-        for (let startBlock = genesisBlock; startBlock <= latestBlockNumber; startBlock += blockStep) {
-            try {
-                const endBlock = Math.min(startBlock + blockStep - 1, latestBlockNumber);
-                const newLogs = await contract.queryFilter(filter, startBlock, endBlock);
-                logs = [...logs, ...newLogs];
-                isCli && this.progressBar.update(endBlock);
-            }
-            catch (error) {
-                if (blockStep === this.MONTH) {
-                    blockStep = this.WEEK;
-                }
-                else if (blockStep === this.WEEK) {
-                    blockStep = this.DAY;
-                }
-                else {
-                    throw new Error(error);
-                }
+    // Resolve all unique operator IDs across owner clusters and fetch their public keys.
+    async getOwnerOperators(sdk) {
+        const clusters = await sdk.api.getClusters({
+            owner: this.params.ownerAddress.toLowerCase(),
+        });
+        const operatorIdSet = new Set();
+        for (const cluster of clusters) {
+            for (const operatorId of cluster.operatorIds) {
+                operatorIdSet.add(String(operatorId));
             }
         }
-        // Create output path
+        const uniqueOperatorIds = Array
+            .from(operatorIdSet)
+            .sort((a, b) => Number(a) - Number(b));
+        if (uniqueOperatorIds.length === 0) {
+            return [];
+        }
+        const operators = await sdk.api.getOperators({
+            operatorIds: uniqueOperatorIds,
+        });
+        return operators
+            .map((operator) => ({
+            id: Number(operator.id),
+            pubkey: operator.publicKey,
+        }))
+            .sort((a, b) => a.id - b.id);
+    }
+    writeOperatorsFile(entries, outputPath) {
         const dirPath = outputPath ? outputPath : path.join(__dirname, '../../data');
         if (!fs.existsSync(dirPath)) {
             fs.mkdirSync(dirPath, { recursive: true });
         }
-        // Initialize entries array outside the loop
-        let entries = new Array(logs.length);
-        // Clear existing file content if it exists
         const filePath = path.join(dirPath, `operator-pubkeys-${this.params.network}.json`);
-        if (fs.existsSync(filePath)) {
-            fs.writeFileSync(filePath, '');
-        }
-        // Loop through logs to extract the pubkey
-        for (let index = 0; index < logs.length; index++) {
-            const parsedLog = iface.parseLog(logs[index]);
-            const decodedLog = iface.decodeEventLog('OperatorAdded', logs[index].data);
-            if (parsedLog === undefined || parsedLog === null) {
-                throw new Error('Could not parse the log');
-            }
-            let result = '';
-            try {
-                const abiCode = ethers_1.AbiCoder.defaultAbiCoder();
-                // Decode the pubkey using the ABI
-                result = abiCode.decode(['string'], decodedLog[2]).join('');
-            }
-            catch (error) {
-                // If decoding fails, use the raw value
-                result = decodedLog[2];
-            }
-            // Add new entry with correct index
-            entries[index] = {
-                id: index + 1,
-                pubkey: result
-            };
-        }
-        // Write to file once after the loop
         fs.writeFileSync(filePath, JSON.stringify(entries, null, 2));
-        isCli && this.progressBar.update(latestBlockNumber, latestBlockNumber);
         return filePath;
     }
 }

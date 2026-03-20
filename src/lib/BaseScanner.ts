@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { getAddress } from 'viem';
 export interface SSVScannerParams {
   network: string,
   nodeUrl: string,
@@ -6,13 +6,6 @@ export interface SSVScannerParams {
 }
 
 export abstract class BaseScanner {
-  protected DAY = 5400;
-  protected WEEK = this.DAY * 7;
-  protected MONTH = this.DAY * 30;
-  protected SECONDS = 1000;
-  protected MILISECONDS = 250;
-  protected progressBar: any;
-
   protected params: SSVScannerParams;
 
   constructor(scannerParams: SSVScannerParams) {
@@ -33,6 +26,6 @@ export abstract class BaseScanner {
     }
     this.params = scannerParams;
     // convert to checksum addresses
-    this.params.ownerAddress = ethers.getAddress(this.params.ownerAddress);
+    this.params.ownerAddress = getAddress(this.params.ownerAddress);
   }
 }
