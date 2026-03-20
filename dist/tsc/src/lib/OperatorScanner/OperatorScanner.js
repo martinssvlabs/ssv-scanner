@@ -3,8 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OperatorScanner = void 0;
 const tslib_1 = require("tslib");
 const BaseScanner_1 = require("../BaseScanner");
-const create_sdk_1 = require("../sdk/create-sdk");
-const networks_1 = require("../sdk/networks");
 const fs = tslib_1.__importStar(require("fs"));
 const path = tslib_1.__importStar(require("path"));
 class OperatorScanner extends BaseScanner_1.BaseScanner {
@@ -12,22 +10,9 @@ class OperatorScanner extends BaseScanner_1.BaseScanner {
         if (isCli) {
             console.log('\nScanning blockchain...');
         }
-        const network = this.params.network;
-        if (!(0, networks_1.isSupportedSdkNetwork)(network)) {
-            const supportedNetworks = networks_1.SUPPORTED_SDK_NETWORKS.join(', ');
-            throw new Error(`Network "${this.params.network}" is not supported for operator command. Supported networks: ${supportedNetworks}.`);
-        }
-        const sdk = (0, create_sdk_1.createSdkForNetwork)({
-            network,
-            nodeUrl: this.params.nodeUrl,
-        });
+        const sdk = this.createSdkForCommand('operator');
         if (isCli) {
-            const contractAddress = sdk.config.contractAddresses.setter;
-            if (contractAddress) {
-                console.log(`Using contract address: ${contractAddress}`);
-            }
-            console.log(`Network: ${this.params.network}`);
-            console.log(`Owner address: ${this.params.ownerAddress}`);
+            this.logScanContext(sdk);
         }
         const entries = await this.getOwnerOperators(sdk);
         if (entries.length === 0) {

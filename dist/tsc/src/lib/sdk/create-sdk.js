@@ -6,15 +6,16 @@ const viem_1 = require("viem");
 const networks_1 = require("./networks");
 const sdkCache = new Map();
 const createSdkForNetwork = ({ network, nodeUrl }) => {
+    const normalizedNodeUrl = nodeUrl.trim();
     const subgraphEndpoint = (0, networks_1.getSubgraphEndpoint)(network);
-    const cacheKey = `${network}:${nodeUrl}:${subgraphEndpoint}`;
+    const cacheKey = `${network}:${normalizedNodeUrl}:${subgraphEndpoint}`;
     const cachedSdk = sdkCache.get(cacheKey);
     if (cachedSdk) {
         return cachedSdk;
     }
     const publicClient = (0, viem_1.createPublicClient)({
         chain: (0, networks_1.getSdkChain)(network),
-        transport: (0, viem_1.http)(nodeUrl),
+        transport: (0, viem_1.http)(normalizedNodeUrl),
     });
     const sdk = new ssv_sdk_1.SSVSDK({
         publicClient,

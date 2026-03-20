@@ -23,30 +23,29 @@
     "scripts": {
         "dev:cli": "ts-node src/cli.ts",
         "cli": "node ./dist/tsc/src/cli.js",
-        "lint": "eslint src/ --ext .js,.jsx,.ts,.tsx",
+        "lint": "tsc -p tsconfig.json --noEmit",
         "clean": "rm -rf dist build package",
         "ts-node": "ts-node",
         "build": "tsc -p tsconfig.json",
-        "build-all": "yarn clean && yarn build && yarn esbuild",
+        "build-all": "npm run clean && npm run build && npm run esbuild",
         "esbuild": "node ./esbuild.js",
-        "pre-commit": "yarn test && yarn lint && yarn build-all"
+        "pre-commit": "npm run lint && npm run build-all"
     },
     "devDependencies": {
         "@types/argparse": "^2.0.10",
+        "@types/figlet": "^1.5.4",
         "@types/node": "^15.14.9",
-        "esbuild": "^0.14.38",
-        "esbuild-node-externals": "^1.4.1",
-        "eslint": "^7.32.0",
+        "esbuild": "^0.27.4",
+        "esbuild-node-externals": "^1.20.1",
         "ts-node": "^10.9.1",
         "typescript": "^5.9.3"
     },
     "dependencies": {
         "@ssv-labs/ssv-sdk": "github:ssvlabs/ssv-sdk",
-        "@types/figlet": "^1.5.4",
         "argparse": "^2.0.1",
         "figlet": "^1.5.2",
-        "viem": "^2.47.5",
-        "yarn": "^1.22.22"
+        "tslib": "^2.8.1",
+        "viem": "^2.47.5"
     },
     "licenses": [
         {

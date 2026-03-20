@@ -2,8 +2,6 @@ import { SSVSDK } from '@ssv-labs/ssv-sdk';
 import { createClusterId } from '@ssv-labs/ssv-sdk/utils';
 
 import { BaseScanner } from '../BaseScanner';
-import { createSdkForNetwork } from '../sdk/create-sdk';
-import { isSupportedSdkNetwork, SUPPORTED_SDK_NETWORKS } from '../sdk/networks';
 
 type SdkClusterSnapshot = NonNullable<Awaited<ReturnType<SSVSDK['api']['toSolidityCluster']>>>;
 type IClusterSnapshotData = Pick<
@@ -54,18 +52,7 @@ export class ClusterScanner extends BaseScanner {
 
   // Build an SDK client for the selected network and delegate snapshot retrieval.
   private async getClusterSnapshot(operatorIds: number[], isCli?: boolean): Promise<IData> {
-    const network = this.params.network;
-    if (!isSupportedSdkNetwork(network)) {
-      const supportedNetworks = SUPPORTED_SDK_NETWORKS.join(', ');
-      throw new Error(
-        `Network "${this.params.network}" is not supported for cluster command. Supported networks: ${supportedNetworks}.`,
-      );
-    }
-
-    const sdk = createSdkForNetwork({
-      network,
-      nodeUrl: this.params.nodeUrl,
-    });
+    const sdk = this.createSdkForCommand('cluster');
 
     return this.getClusterSnapshotFromSubgraph(
       operatorIds,
@@ -81,14 +68,8 @@ export class ClusterScanner extends BaseScanner {
     isCli?: boolean,
   ): Promise<IData> {
     if (isCli) {
-      const contractAddress = sdk.config.contractAddresses.setter;
-
-      if (contractAddress) {
-        console.log(`\nUsing contract address: ${contractAddress}`);
-      }
-      console.log(`Network: ${this.params.network}`);
-      console.log(`Owner address: ${this.params.ownerAddress}`);
-      console.log(`Operator IDs: ${operatorIds.join(',')}`);
+      console.log('');
+      this.logScanContext(sdk, [`Operator IDs: ${operatorIds.join(',')}`]);
     }
 
     const [latestBlockNumber, clusterData] = await Promise.all([
@@ -150,12 +131,7 @@ export class ClusterScanner extends BaseScanner {
   // Guard bigint block values before converting to number for payload/output compatibility.
   private async getLatestBlockNumber(sdk: SSVSDK): Promise<number> {
     const latestBlockNumber = await sdk.config.publicClient.getBlockNumber();
-
-    if (latestBlockNumber > BigInt(Number.MAX_SAFE_INTEGER)) {
-      throw new Error('Latest block number is larger than MAX_SAFE_INTEGER.');
-    }
-
-    return Number(latestBlockNumber);
+    return this.toSafeNumber(latestBlockNumber, 'Latest block number');
   }
 
   private validateOperatorIds(operatorIds: number[]): void {

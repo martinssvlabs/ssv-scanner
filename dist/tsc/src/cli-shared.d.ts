@@ -1,1 +1,1 @@
-export default function main(): Promise<any>;
+export default function main(): Promise<void>;

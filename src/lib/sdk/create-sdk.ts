@@ -11,8 +11,9 @@ interface ICreateSdkForNetwork {
 const sdkCache = new Map<string, SSVSDK>();
 
 export const createSdkForNetwork = ({ network, nodeUrl }: ICreateSdkForNetwork): SSVSDK => {
+  const normalizedNodeUrl = nodeUrl.trim();
   const subgraphEndpoint = getSubgraphEndpoint(network);
-  const cacheKey = `${network}:${nodeUrl}:${subgraphEndpoint}`;
+  const cacheKey = `${network}:${normalizedNodeUrl}:${subgraphEndpoint}`;
   const cachedSdk = sdkCache.get(cacheKey);
   if (cachedSdk) {
     return cachedSdk;
@@ -20,7 +21,7 @@ export const createSdkForNetwork = ({ network, nodeUrl }: ICreateSdkForNetwork):
 
   const publicClient = createPublicClient({
     chain: getSdkChain(network),
-    transport: http(nodeUrl),
+    transport: http(normalizedNodeUrl),
   });
 
   const sdk = new SSVSDK({

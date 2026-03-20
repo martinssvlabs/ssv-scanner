@@ -1,6 +1,4 @@
 import { BaseScanner } from '../BaseScanner';
-import { createSdkForNetwork } from '../sdk/create-sdk';
-import { isSupportedSdkNetwork, SUPPORTED_SDK_NETWORKS } from '../sdk/networks';
 import { SSVSDK } from '@ssv-labs/ssv-sdk';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -16,26 +14,10 @@ export class OperatorScanner extends BaseScanner {
       console.log('\nScanning blockchain...');
     }
 
-    const network = this.params.network;
-    if (!isSupportedSdkNetwork(network)) {
-      const supportedNetworks = SUPPORTED_SDK_NETWORKS.join(', ');
-      throw new Error(
-        `Network "${this.params.network}" is not supported for operator command. Supported networks: ${supportedNetworks}.`,
-      );
-    }
-
-    const sdk = createSdkForNetwork({
-      network,
-      nodeUrl: this.params.nodeUrl,
-    });
+    const sdk = this.createSdkForCommand('operator');
 
     if (isCli) {
-      const contractAddress = sdk.config.contractAddresses.setter;
-      if (contractAddress) {
-        console.log(`Using contract address: ${contractAddress}`);
-      }
-      console.log(`Network: ${this.params.network}`);
-      console.log(`Owner address: ${this.params.ownerAddress}`);
+      this.logScanContext(sdk);
     }
 
     const entries = await this.getOwnerOperators(sdk);

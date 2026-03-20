@@ -11,10 +11,6 @@
 
 ![Discord](https://img.shields.io/discord/723834989506068561?style=for-the-badge&label=Ask%20for%20support&logo=discord&logoColor=white)
 
-Important dependencies:
-
-* ![GitHub package.json dependency version (prod)](https://img.shields.io/github/package-json/dependency-version/ssvlabs/ssv-scanner/ethersjs?style=social)
-
 ---
 
 This repository contains The ssv scanner library and CLI.
@@ -33,9 +29,8 @@ Once you have installed NodeJS, follow these instructions to prepare the project
 ```bash
 git clone https://github.com/ssvlabs/ssv-scanner.git
 cd ssv-scanner
-npm i yarn -g
-yarn
-yarn cli --help
+npm install
+npm run cli -- --help
 ```
 
 ### Running as a CLI from the repository
@@ -46,7 +41,7 @@ yarn cli --help
 Help on available actions:
 
 ```bash
-yarn cli --help
+npm run cli -- --help
 ```
 
 #### Example cluster scanner
@@ -60,7 +55,7 @@ yarn cli --help
 
 Example of running cluster scanner in the CLI:
 ```bash
-yarn cli cluster -n .... -nw mainnet -oa ..... -oids 1,2,3,4
+npm run cli -- cluster -n .... -nw mainnet -oa ..... -oids 1,2,3,4
 ```
 
 **Output:**  Latest cluster data (serialized).
@@ -76,8 +71,8 @@ yarn cli cluster -n .... -nw mainnet -oa ..... -oids 1,2,3,4
 
 Example of running nonce scanner in the CLI:
 ```bash
-
-yarn cli nonce -n https://the_eth_node -nw network -oa 0xeth_address
+npm run cli -- nonce -n https://the_eth_node -nw network -oa 0xeth_address
+```
 
 **Output:**  Current owner nonce.
 
@@ -92,8 +87,7 @@ yarn cli nonce -n https://the_eth_node -nw network -oa 0xeth_address
 
 Example of running cluster scanner in the CLI:
 ```bash
-
-yarn cli operator -n https://the_eth_node -nw network -oa 0xeth_address
+npm run cli -- operator -n https://the_eth_node -nw network -oa 0xeth_address
 ```
 **Output:**  File output path (json with operator pubkeys associated with the owner clusters)
 
@@ -106,19 +100,19 @@ To run an example of a NodeJS project containing all the code snippets to build 
 
 ```bash
 cd examples
-yarn install
+npm install
 ```
 
 To run a JavaScript example:
 
 ```bash
-yarn start:js
+npm run start:js
 ```
 
 To run a Typescript example:
 
 ```bash
-yarn start
+npm run start
 ```
 
 ## Development
@@ -126,19 +120,19 @@ yarn start
 ### Run the CLI as a TypeScript executable:
 
 ```bash
-yarn dev:cli ...
+npm run dev:cli -- ...
 ```
 
 ### Run the CLI as a JavaScript compiled executable:
 
 ```bash
-yarn cli ...
+npm run cli -- ...
 ```
 
 ### Lint
 
 ```bash
-yarn lint
+npm run lint
 ```
 
 ### Building
@@ -146,19 +140,19 @@ yarn lint
 Build TypeScript into JavaScript
 
 ```bash
-yarn build
+npm run build
 ```
 
 Build for NodeJs using `esbuild`
 
 ```bash
-yarn esbuild
+npm run esbuild
 ```
 
 Build everything
 
 ```bash
-yarn build-all
+npm run build-all
 ```
 
 ## TODO

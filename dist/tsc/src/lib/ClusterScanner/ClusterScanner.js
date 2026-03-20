@@ -3,8 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ClusterScanner = void 0;
 const utils_1 = require("@ssv-labs/ssv-sdk/utils");
 const BaseScanner_1 = require("../BaseScanner");
-const create_sdk_1 = require("../sdk/create-sdk");
-const networks_1 = require("../sdk/networks");
 const DEFAULT_CLUSTER_SNAPSHOT = {
     validatorCount: '0',
     networkFeeIndex: '0',
@@ -25,27 +23,14 @@ class ClusterScanner extends BaseScanner_1.BaseScanner {
     }
     // Build an SDK client for the selected network and delegate snapshot retrieval.
     async getClusterSnapshot(operatorIds, isCli) {
-        const network = this.params.network;
-        if (!(0, networks_1.isSupportedSdkNetwork)(network)) {
-            const supportedNetworks = networks_1.SUPPORTED_SDK_NETWORKS.join(', ');
-            throw new Error(`Network "${this.params.network}" is not supported for cluster command. Supported networks: ${supportedNetworks}.`);
-        }
-        const sdk = (0, create_sdk_1.createSdkForNetwork)({
-            network,
-            nodeUrl: this.params.nodeUrl,
-        });
+        const sdk = this.createSdkForCommand('cluster');
         return this.getClusterSnapshotFromSubgraph(operatorIds, sdk, isCli);
     }
     // Fetch block height and cluster snapshot concurrently, then shape the CLI-friendly output.
     async getClusterSnapshotFromSubgraph(operatorIds, sdk, isCli) {
         if (isCli) {
-            const contractAddress = sdk.config.contractAddresses.setter;
-            if (contractAddress) {
-                console.log(`\nUsing contract address: ${contractAddress}`);
-            }
-            console.log(`Network: ${this.params.network}`);
-            console.log(`Owner address: ${this.params.ownerAddress}`);
-            console.log(`Operator IDs: ${operatorIds.join(',')}`);
+            console.log('');
+            this.logScanContext(sdk, [`Operator IDs: ${operatorIds.join(',')}`]);
         }
         const [latestBlockNumber, clusterData] = await Promise.all([
             this.getLatestBlockNumber(sdk),
@@ -92,10 +77,7 @@ class ClusterScanner extends BaseScanner_1.BaseScanner {
     // Guard bigint block values before converting to number for payload/output compatibility.
     async getLatestBlockNumber(sdk) {
         const latestBlockNumber = await sdk.config.publicClient.getBlockNumber();
-        if (latestBlockNumber > BigInt(Number.MAX_SAFE_INTEGER)) {
-            throw new Error('Latest block number is larger than MAX_SAFE_INTEGER.');
-        }
-        return Number(latestBlockNumber);
+        return this.toSafeNumber(latestBlockNumber, 'Latest block number');
     }
     validateOperatorIds(operatorIds) {
         if (!Array.isArray(operatorIds)) {
