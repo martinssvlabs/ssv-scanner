@@ -1,6 +1,13 @@
 import { ArgumentParser } from 'argparse';
 import { Command } from './Command';
 import { NonceScanner } from '../lib/NonceScanner/NonceScanner';
+import { SUPPORTED_SDK_NETWORKS } from '../lib/sdk/networks';
+
+interface INonceCommandArgs {
+  network: string;
+  nodeUrl: string;
+  ownerAddress: string;
+}
 
 export class NonceCommand extends Command {
   constructor() {
@@ -10,7 +17,7 @@ export class NonceCommand extends Command {
   setArguments(parser: ArgumentParser): void {
     parser.add_argument('-nw', '--network', {
       help: 'The network',
-      choices: ['mainnet', 'hoodi', 'hoodi_stage', 'local_testnet', 'fusaka'],
+      choices: [...SUPPORTED_SDK_NETWORKS],
       required: true,
       dest: 'network',
     });
@@ -26,13 +33,14 @@ export class NonceCommand extends Command {
     });
   }
 
-  async run(args: any): Promise<void> {
+  async run(args: INonceCommandArgs): Promise<void> {
     try {
       const nonceScanner = new NonceScanner(args);
       const result = await nonceScanner.run(true);
       console.log('Next Nonce:', result);
-    } catch (e: any) {
-      console.error('\x1b[31m', e.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('\x1b[31m', message);
     }
   }
 }

@@ -1,6 +1,14 @@
 import { ArgumentParser } from 'argparse';
 import { Command } from './Command';
 import { OperatorScanner } from '../lib/OperatorScanner/OperatorScanner';
+import { SUPPORTED_SDK_NETWORKS } from '../lib/sdk/networks';
+
+interface IOperatorCommandArgs {
+  network: string;
+  nodeUrl: string;
+  ownerAddress: string;
+  outputPath?: string;
+}
 
 export class OperatorCommand extends Command {
   constructor() {
@@ -10,7 +18,7 @@ export class OperatorCommand extends Command {
   setArguments(parser: ArgumentParser): void {
     parser.add_argument('-nw', '--network', {
       help: 'The network',
-      choices: ['mainnet', 'hoodi', 'hoodi_stage', 'local_testnet', 'fusaka'],
+      choices: [...SUPPORTED_SDK_NETWORKS],
       required: true,
       dest: 'network',
     });
@@ -31,15 +39,19 @@ export class OperatorCommand extends Command {
     });
   }
 
-  async run(args: any): Promise<void> {
+  async run(args: IOperatorCommandArgs): Promise<void> {
     try {
-        const operatorScanner = new OperatorScanner(args);
-        const outputPath = args.outputPath;
-        const result = await operatorScanner.run(outputPath, true);
+      const operatorScanner = new OperatorScanner(args);
+      const outputPath = args.outputPath;
+      const result = await operatorScanner.run(outputPath, true);
+      if (result) {
         console.log(`\nOperator data has been saved to:\n ${result}`);
-    } catch (e: any) {
-        console.error('\x1b[31m', e.message);
+      } else {
+        console.log('\nNo operator data found for this owner. No output file was created.');
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('\x1b[31m', message);
     }
   }
 }
-

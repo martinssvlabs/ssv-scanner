@@ -1,7 +1,8 @@
 {
   "name": "ssv-scanner-example",
   "version": "0.0.1",
-  "description": "",
+  "description": "Local examples for ssv-scanner",
+  "private": true,
   "scripts": {
     "start:js": "node example-js.js",
     "start": "ts-node example-typescript.ts"
@@ -9,10 +10,10 @@
   "author": "SSV.Network",
   "license": "ISC",
   "dependencies": {
-    "ssv-scanner": "https://github.com/ssvlabs/ssv-scanner.git"
+    "ssv-scanner": "file:.."
   },
   "devDependencies": {
-    "ts-node": "^10.8.2",
-    "typescript": "^4.7.4"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   }
 }

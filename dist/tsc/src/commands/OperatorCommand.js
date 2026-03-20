@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OperatorCommand = void 0;
 const Command_1 = require("./Command");
 const OperatorScanner_1 = require("../lib/OperatorScanner/OperatorScanner");
+const networks_1 = require("../lib/sdk/networks");
 class OperatorCommand extends Command_1.Command {
     constructor() {
         super('operator', 'Handles cluster operations');
@@ -10,7 +11,7 @@ class OperatorCommand extends Command_1.Command {
     setArguments(parser) {
         parser.add_argument('-nw', '--network', {
             help: 'The network',
-            choices: ['mainnet', 'hoodi', 'hoodi_stage', 'local_testnet', 'fusaka'],
+            choices: [...networks_1.SUPPORTED_SDK_NETWORKS],
             required: true,
             dest: 'network',
         });
@@ -35,10 +36,16 @@ class OperatorCommand extends Command_1.Command {
             const operatorScanner = new OperatorScanner_1.OperatorScanner(args);
             const outputPath = args.outputPath;
             const result = await operatorScanner.run(outputPath, true);
-            console.log(`\nOperator data has been saved to:\n ${result}`);
+            if (result) {
+                console.log(`\nOperator data has been saved to:\n ${result}`);
+            }
+            else {
+                console.log('\nNo operator data found for this owner. No output file was created.');
+            }
         }
-        catch (e) {
-            console.error('\x1b[31m', e.message);
+        catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.error('\x1b[31m', message);
         }
     }
 }

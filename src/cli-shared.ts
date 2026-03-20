@@ -6,23 +6,23 @@ import { NonceCommand } from './commands/NonceCommand';
 import { ClusterCommand } from './commands/ClusterCommand';
 import { OperatorCommand } from './commands/OperatorCommand';
 
-const FigletMessage = async (message: string) => {
-  return new Promise(resolve => {
-    figlet(message, (error: any, output?: string) => {
+const renderFigletMessage = async (message: string): Promise<string> => {
+  return new Promise((resolve) => {
+    figlet(message, (error: Error | null, output?: string) => {
       if (error) {
         return resolve('');
       }
-      resolve(output);
+      resolve(output || '');
     });
-  })
-}
+  });
+};
 
-export default async function main(): Promise<any> {
+export default async function main(): Promise<void> {
   const messageText = `SSV Scanner v${pkg.version}`;
-  const message = await FigletMessage(messageText);
+  const message = await renderFigletMessage(messageText);
   if (message) {
     console.log(' -----------------------------------------------------------------------------------');
-    console.log(`${message || messageText}`);
+    console.log(message);
     console.log(' -----------------------------------------------------------------------------------');
     for (const str of String(pkg.description).match(/.{1,75}/g) || []) {
       console.log(` ${str}`);
@@ -36,24 +36,22 @@ export default async function main(): Promise<any> {
   const clusterCommand = new ClusterCommand();
   const nonceCommand = new NonceCommand();
   const operatorCommand = new OperatorCommand();
-  const clusterCommandParser = subParsers.add_parser(clusterCommand.name, { add_help: true })
+  const clusterCommandParser = subParsers.add_parser(clusterCommand.name, { add_help: true });
   const nonceCommandParser = subParsers.add_parser(nonceCommand.name, { add_help: true });
   const operatorCommandParser = subParsers.add_parser(operatorCommand.name, { add_help: true });
+  clusterCommand.setArguments(clusterCommandParser);
+  nonceCommand.setArguments(nonceCommandParser);
+  operatorCommand.setArguments(operatorCommandParser);
 
   let command = '';
   const args = process.argv.slice(2); // Skip node and script name
 
   if (args[1] && args[1].includes('--help')) {
-    clusterCommand.setArguments(clusterCommandParser);
-    nonceCommand.setArguments(nonceCommandParser);
-    operatorCommand.setArguments(operatorCommandParser);
     rootParser.parse_args(); // Print help and exit
+    return;
   } else {
-    let args = rootParser.parse_known_args();
-    command = args[0]['command'];
-    clusterCommand.setArguments(clusterCommandParser);
-    nonceCommand.setArguments(nonceCommandParser);
-    operatorCommand.setArguments(operatorCommandParser);
+    const parsedArgs = rootParser.parse_known_args();
+    command = parsedArgs[0].command;
   }
 
   switch (command) {

@@ -1,118 +1,75 @@
-import { AbiCoder, ethers } from 'ethers';
-import cliProgress from 'cli-progress';
-import { getContractSettings } from '../contract.provider';
-
 import { BaseScanner } from '../BaseScanner';
+import { SSVSDK } from '@ssv-labs/ssv-sdk';
+import * as fs from 'fs';
+import * as path from 'path';
 
-const fs = require('fs');
-const path = require('path');
+interface IOperatorEntry {
+  id: number;
+  pubkey: string;
+}
 
 export class OperatorScanner extends BaseScanner {
-  async run(outputPath?: string, isCli?: boolean): Promise<string> {
+  async run(outputPath?: string, isCli?: boolean): Promise<string | null> {
     if (isCli) {
       console.log('\nScanning blockchain...');
-      this.progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
     }
-    try {
-      const data = await this._getOperatorPubkeys(outputPath, isCli);
-      isCli && this.progressBar.stop();
-      return data;
-    } catch (e: any) {
-      isCli && this.progressBar.stop();
-      throw new Error(e);
+
+    const sdk = this.createSdkForCommand('operator');
+
+    if (isCli) {
+      this.logScanContext(sdk);
     }
+
+    const entries = await this.getOwnerOperators(sdk);
+    if (entries.length === 0) {
+      return null;
+    }
+
+    return this.writeOperatorsFile(entries, outputPath);
   }
 
-  async _getOperatorPubkeys(outputPath?: string, isCli?: boolean): Promise<string> {
-    const { contractAddress, abi, genesisBlock } = getContractSettings(this.params.network)
-    const provider = new ethers.JsonRpcProvider(this.params.nodeUrl);
-    const contract = new ethers.Contract(contractAddress, abi, provider);
+  // Resolve all unique operator IDs across owner clusters and fetch their public keys.
+  private async getOwnerOperators(sdk: SSVSDK): Promise<IOperatorEntry[]> {
+    const clusters = await sdk.api.getClusters({
+      owner: this.params.ownerAddress.toLowerCase(),
+    });
 
-    const iface = new ethers.Interface(abi);
-
-    let latestBlockNumber;
-    try {
-      latestBlockNumber = await provider.getBlockNumber();
-    } catch (err) {
-      throw new Error('Could not access the provided node endpoint.');
-    }
-
-    try {
-      await contract.owner();
-    } catch (err) {
-      throw new Error('Could not find any cluster snapshot from the provided contract address.');
-    }
-
-    let blockStep = this.MONTH;
-
-    isCli && this.progressBar.start(Number(latestBlockNumber), 0);
-    const filter = contract.filters.OperatorAdded();
-    let logs: any[] = [];
-
-    for (let startBlock = genesisBlock; startBlock <= latestBlockNumber; startBlock += blockStep) {
-      try {
-        const endBlock = Math.min(startBlock + blockStep - 1, latestBlockNumber);
-        const newLogs = await contract.queryFilter(filter, startBlock, endBlock);
-        logs = [...logs, ...newLogs];
-        isCli && this.progressBar.update(endBlock);
-      } catch (error: any) {
-        if (blockStep === this.MONTH) {
-          blockStep = this.WEEK;
-        } else if (blockStep === this.WEEK) {
-          blockStep = this.DAY;
-        } else {
-          throw new Error(error);
-        }
+    const operatorIdSet = new Set<string>();
+    for (const cluster of clusters) {
+      for (const operatorId of cluster.operatorIds) {
+        operatorIdSet.add(String(operatorId));
       }
     }
 
-    // Create output path
+    const uniqueOperatorIds = Array
+      .from(operatorIdSet)
+      .sort((a: string, b: string) => Number(a) - Number(b));
+
+    if (uniqueOperatorIds.length === 0) {
+      return [];
+    }
+
+    const operators = await sdk.api.getOperators({
+      operatorIds: uniqueOperatorIds,
+    });
+
+    return operators
+      .map((operator) => ({
+        id: Number(operator.id),
+        pubkey: operator.publicKey,
+      }))
+      .sort((a: IOperatorEntry, b: IOperatorEntry) => a.id - b.id);
+  }
+
+  private writeOperatorsFile(entries: IOperatorEntry[], outputPath?: string): string {
     const dirPath = outputPath ? outputPath : path.join(__dirname, '../../data');
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath, { recursive: true });
     }
-    
-    // Initialize entries array outside the loop
-    let entries = new Array(logs.length);
-    
-    // Clear existing file content if it exists
+
     const filePath = path.join(dirPath, `operator-pubkeys-${this.params.network}.json`);
-    if (fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, '');
-    }
+    fs.writeFileSync(filePath, JSON.stringify(entries, null, 2));
 
-    // Loop through logs to extract the pubkey
-    for (let index = 0; index < logs.length; index++) {
-      const parsedLog = iface.parseLog(logs[index]);
-      const decodedLog = iface.decodeEventLog('OperatorAdded', logs[index].data);
-      if (parsedLog === undefined || parsedLog === null) {
-        throw new Error('Could not parse the log');
-      }
-        
-      let result = '';
-
-      try {
-        const abiCode = AbiCoder.defaultAbiCoder();
-        // Decode the pubkey using the ABI
-        result = abiCode.decode(['string'], decodedLog[2]).join('')
-      }
-      catch (error: any) {
-        // If decoding fails, use the raw value
-        result = decodedLog[2];
-      }
-
-        // Add new entry with correct index
-        entries[index] = {
-          id: index + 1,
-          pubkey: result
-        };
-      }
-      // Write to file once after the loop
-      fs.writeFileSync(filePath, JSON.stringify(entries, null, 2));
-      
-      isCli && this.progressBar.update(latestBlockNumber, latestBlockNumber);
-      return filePath;
-    }
+    return filePath;
+  }
 }
-
-

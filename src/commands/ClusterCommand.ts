@@ -1,6 +1,14 @@
 import { ArgumentParser } from 'argparse';
 import { Command } from './Command';
 import { ClusterScanner } from '../lib/ClusterScanner/ClusterScanner';
+import { SUPPORTED_SDK_NETWORKS } from '../lib/sdk/networks';
+
+interface IClusterCommandArgs {
+  network: string;
+  nodeUrl: string;
+  ownerAddress: string;
+  operatorIds: string;
+}
 
 export class ClusterCommand extends Command {
   constructor() {
@@ -10,7 +18,7 @@ export class ClusterCommand extends Command {
   setArguments(parser: ArgumentParser): void {
     parser.add_argument('-nw', '--network', {
       help: 'The network',
-      choices: ['mainnet', 'hoodi', 'hoodi_stage', 'local_testnet', 'fusaka'],
+      choices: [...SUPPORTED_SDK_NETWORKS],
       required: true,
       dest: 'network',
     });
@@ -31,14 +39,9 @@ export class ClusterCommand extends Command {
     });
   }
 
-  async run(args: any): Promise<void> {
+  async run(args: IClusterCommandArgs): Promise<void> {
     try {
-      const operatorIds = args.operatorIds.split(',')
-        .map((value: any) => {
-          if (Number.isNaN(+value)) throw new Error('Operator Id should be the number');
-          return +value;
-        })
-        .sort((a: number, b: number) => a - b);
+      const operatorIds = this.parseOperatorIds(args.operatorIds);
       const clusterScanner = new ClusterScanner(args);
       const result = await clusterScanner.run(operatorIds, true);
       console.table(result.payload);
@@ -49,8 +52,29 @@ export class ClusterCommand extends Command {
         'cluster snapshot': result.cluster,
         'cluster': Object.values(result.cluster)
       }, (_, v) => typeof v === 'bigint' ? v.toString() : v, '  '));
-    } catch (e: any) {
-      console.error('\x1b[31m', e.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('\x1b[31m', message);
     }
+  }
+
+  private parseOperatorIds(rawOperatorIds: string): number[] {
+    if (typeof rawOperatorIds !== 'string' || !rawOperatorIds.trim()) {
+      throw new Error('Operator IDs are required.');
+    }
+
+    return rawOperatorIds.split(',').map((value: string) => {
+      const parsedValue = value.trim();
+      if (!parsedValue) {
+        throw new Error('Operator IDs must not include empty values.');
+      }
+
+      const operatorId = Number(parsedValue);
+      if (!Number.isSafeInteger(operatorId) || operatorId <= 0) {
+        throw new Error(`Invalid operator ID "${parsedValue}". Operator IDs must be positive integers.`);
+      }
+
+      return operatorId;
+    });
   }
 }
