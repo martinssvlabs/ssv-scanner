@@ -1,4 +1,6 @@
 /node_modules/
+/.yarn/
+.yarnrc.yml
 /build/
 /lib/
 .idea/*
@@ -9,3 +11,4 @@ coverage
 /data/*
 bin/**/*
 src/data/*
+.yarn
