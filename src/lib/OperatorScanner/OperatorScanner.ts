@@ -9,6 +9,7 @@ interface IOperatorEntry {
 }
 
 export class OperatorScanner extends BaseScanner {
+  // Gather operator pubkeys for the owner and optionally persist them as JSON.
   async run(outputPath?: string, isCli?: boolean): Promise<string | null> {
     if (isCli) {
       console.log('\nScanning blockchain...');
@@ -61,6 +62,7 @@ export class OperatorScanner extends BaseScanner {
       .sort((a: IOperatorEntry, b: IOperatorEntry) => a.id - b.id);
   }
 
+  // Persist operator entries to disk using either custom or default output directory.
   private writeOperatorsFile(entries: IOperatorEntry[], outputPath?: string): string {
     const dirPath = outputPath ? outputPath : path.join(__dirname, '../../data');
     if (!fs.existsSync(dirPath)) {

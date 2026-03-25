@@ -10,10 +10,12 @@ const SDK_NETWORK_CHAINS: Record<SupportedSdkNetwork, SdkChain> = {
   hoodi: chains.hoodi,
 };
 
+// Runtime guard for CLI inputs before narrowing to SDK-supported networks.
 export const isSupportedSdkNetwork = (network: string): network is SupportedSdkNetwork => {
   return (SUPPORTED_SDK_NETWORKS as readonly string[]).includes(network);
 };
 
+// Resolve the viem chain object expected by SDK/client initialization.
 export const getSdkChain = (network: SupportedSdkNetwork): SdkChain => {
   return SDK_NETWORK_CHAINS[network];
 };

@@ -11,11 +11,13 @@ interface ICreateSdkForNetwork {
 const sdkCache = new Map<string, SSVSDK>();
 const SUBGRAPH_API_KEY_ENV = 'SSV_SUBGRAPH_API_KEY';
 
+// Read and normalize the optional subgraph API key from environment.
 const getSubgraphApiKey = (): string | undefined => {
   const value = process.env[SUBGRAPH_API_KEY_ENV]?.trim();
   return value ? value : undefined;
 };
 
+// Reuse SDK instances per network/node/auth mode to avoid rebuilding clients repeatedly.
 export const createSdkForNetwork = ({ network, nodeUrl }: ICreateSdkForNetwork): SSVSDK => {
   const normalizedNodeUrl = nodeUrl.trim();
   const subgraphApiKey = getSubgraphApiKey();

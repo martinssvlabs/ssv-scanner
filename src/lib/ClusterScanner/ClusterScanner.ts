@@ -134,6 +134,7 @@ export class ClusterScanner extends BaseScanner {
     return this.toSafeNumber(latestBlockNumber, 'Latest block number');
   }
 
+  // Enforce valid and deterministic operator sets before any SDK query.
   private validateOperatorIds(operatorIds: number[]): void {
     if (!Array.isArray(operatorIds)) {
       throw new Error('Operator IDs must be provided as a comma-separated list.');
