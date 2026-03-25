@@ -5,6 +5,7 @@ const viem_1 = require("viem");
 const create_sdk_1 = require("./sdk/create-sdk");
 const networks_1 = require("./sdk/networks");
 class BaseScanner {
+    // Validate shared scanner params once and normalize the owner address format.
     constructor(scannerParams) {
         if (!scannerParams.nodeUrl) {
             throw Error('ETH1 node is required');
@@ -25,6 +26,7 @@ class BaseScanner {
         // convert to checksum addresses
         this.params.ownerAddress = (0, viem_1.getAddress)(this.params.ownerAddress);
     }
+    // Create an SDK instance for the active command after network validation.
     createSdkForCommand(commandName) {
         const network = this.getSupportedNetworkOrThrow(commandName);
         return (0, create_sdk_1.createSdkForNetwork)({
@@ -32,6 +34,7 @@ class BaseScanner {
             nodeUrl: this.params.nodeUrl,
         });
     }
+    // Print common CLI scan context and optional command-specific lines.
     logScanContext(sdk, additionalLines = []) {
         const contractAddress = sdk.config.contractAddresses.setter;
         if (contractAddress) {
@@ -43,12 +46,14 @@ class BaseScanner {
             console.log(line);
         }
     }
+    // Convert bigint values safely for CLI/library response payloads.
     toSafeNumber(value, valueName) {
         if (value > BigInt(Number.MAX_SAFE_INTEGER)) {
             throw new Error(`${valueName} is larger than MAX_SAFE_INTEGER.`);
         }
         return Number(value);
     }
+    // Restrict commands to explicitly supported SDK networks.
     getSupportedNetworkOrThrow(commandName) {
         const network = this.params.network;
         if (!(0, networks_1.isSupportedSdkNetwork)(network)) {
