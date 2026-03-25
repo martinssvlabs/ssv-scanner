@@ -33,6 +33,12 @@ npm install
 npm run cli -- --help
 ```
 
+Optional (recommended to avoid subgraph rate limits):
+
+```bash
+export SSV_SUBGRAPH_API_KEY=your_the_graph_api_key_here
+```
+
 ### Running as a CLI from the repository
 
 
