@@ -3,13 +3,10 @@ import { BaseScanner } from '../BaseScanner';
 export class NonceScanner extends BaseScanner {
   // Resolve the owner's next nonce through the SDK subgraph API.
   async run(isCli?: boolean): Promise<number> {
+    const sdk = this.createSdk();
+
     if (isCli) {
       console.log('\nScanning blockchain...');
-    }
-
-    const sdk = this.createSdkForCommand('nonce');
-
-    if (isCli) {
       this.logScanContext(sdk);
     }
 

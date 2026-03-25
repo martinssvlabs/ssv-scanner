@@ -11,13 +11,10 @@ interface IOperatorEntry {
 export class OperatorScanner extends BaseScanner {
   // Gather operator pubkeys for the owner and optionally persist them as JSON.
   async run(outputPath?: string, isCli?: boolean): Promise<string | null> {
+    const sdk = this.createSdk();
+
     if (isCli) {
       console.log('\nScanning blockchain...');
-    }
-
-    const sdk = this.createSdkForCommand('operator');
-
-    if (isCli) {
       this.logScanContext(sdk);
     }
 
@@ -36,6 +33,7 @@ export class OperatorScanner extends BaseScanner {
     });
 
     const operatorIdSet = new Set<string>();
+    // Build a unique list of operator IDs
     for (const cluster of clusters) {
       for (const operatorId of cluster.operatorIds) {
         operatorIdSet.add(String(operatorId));
@@ -50,16 +48,20 @@ export class OperatorScanner extends BaseScanner {
       return [];
     }
 
+    // Fetch owner clusters, dedupe their operator IDs, and return sorted {id, pubkey} entries.
     const operators = await sdk.api.getOperators({
       operatorIds: uniqueOperatorIds,
     });
 
-    return operators
-      .map((operator) => ({
-        id: Number(operator.id),
-        pubkey: operator.publicKey,
-      }))
-      .sort((a: IOperatorEntry, b: IOperatorEntry) => a.id - b.id);
+    // Normalize SDK operator shape.
+    const operatorEntries: IOperatorEntry[] = operators.map((operator) => ({
+      id: Number(operator.id),
+      pubkey: operator.publicKey,
+    }));
+
+    // Sort by numeric ID.
+    const sortedOperatorEntries = operatorEntries.sort((a: IOperatorEntry, b: IOperatorEntry) => a.id - b.id);
+    return sortedOperatorEntries;
   }
 
   // Persist operator entries to disk using either custom or default output directory.

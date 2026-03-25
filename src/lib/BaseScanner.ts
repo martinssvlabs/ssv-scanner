@@ -35,9 +35,9 @@ export abstract class BaseScanner {
     this.params.ownerAddress = getAddress(this.params.ownerAddress);
   }
 
-  // Create an SDK instance for the active command after network validation.
-  protected createSdkForCommand(commandName: string): SSVSDK {
-    const network = this.getSupportedNetworkOrThrow(commandName);
+  // Create an SDK instance after validating that the requested network is supported.
+  protected createSdk(): SSVSDK {
+    const network = this.getSupportedNetworkOrThrow();
     return createSdkForNetwork({
       network,
       nodeUrl: this.params.nodeUrl,
@@ -67,13 +67,13 @@ export abstract class BaseScanner {
     return Number(value);
   }
 
-  // Restrict commands to explicitly supported SDK networks.
-  private getSupportedNetworkOrThrow(commandName: string): SupportedSdkNetwork {
+  // Restrict scanners to explicitly supported SDK networks.
+  private getSupportedNetworkOrThrow(): SupportedSdkNetwork {
     const network = this.params.network;
     if (!isSupportedSdkNetwork(network)) {
       const supportedNetworks = SUPPORTED_SDK_NETWORKS.join(', ');
       throw new Error(
-        `Network "${network}" is not supported for ${commandName} command. Supported networks: ${supportedNetworks}.`,
+        `Network "${network}" is not supported. Supported networks: ${supportedNetworks}.`,
       );
     }
 

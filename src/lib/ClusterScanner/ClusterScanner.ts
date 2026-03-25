@@ -52,21 +52,8 @@ export class ClusterScanner extends BaseScanner {
 
   // Build an SDK client for the selected network and delegate snapshot retrieval.
   private async getClusterSnapshot(operatorIds: number[], isCli?: boolean): Promise<IData> {
-    const sdk = this.createSdkForCommand('cluster');
+    const sdk = this.createSdk();
 
-    return this.getClusterSnapshotFromSubgraph(
-      operatorIds,
-      sdk,
-      isCli,
-    );
-  }
-
-  // Fetch block height and cluster snapshot concurrently, then shape the CLI-friendly output.
-  private async getClusterSnapshotFromSubgraph(
-    operatorIds: number[],
-    sdk: SSVSDK,
-    isCli?: boolean,
-  ): Promise<IData> {
     if (isCli) {
       console.log('');
       this.logScanContext(sdk, [`Operator IDs: ${operatorIds.join(',')}`]);
