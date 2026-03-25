@@ -13,9 +13,9 @@
 
 ---
 
-This repository contains The ssv scanner library and CLI.
-It is used to retrieve events data from the SSV [network contract](https://docs.ssv.network/developers/smart-contracts/ssvnetwork).
-The tool is used for retrieving the latest cluster snapshot or owner nonce from the blockchain, which are required as inputs for SSV tooling and smart contract transactions.
+This repository contains the SSV scanner library and CLI.
+It retrieves owner/cluster data via the SSV SDK (subgraph-first) for networks supported by the SDK configuration.
+The tool returns the latest cluster snapshot or owner nonce, which are required as inputs for SSV tooling and smart contract transactions.
 
 ## Running from the CLI
 
